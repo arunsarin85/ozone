@@ -255,7 +255,7 @@
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-inprocess</artifactId>
-        <version>${io.grpc.version}</version>
+        <version>1.58.0</version>
       </dependency>
       <dependency>
         <groupId>io.netty</groupId>
