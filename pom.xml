@@ -21,6 +21,10 @@
   <name>Apache Ozone Main</name>
   <description>Apache Ozone Main</description>
 
+   <properties>
+    <sort.skip>true</sort.skip>
+  </properties>
+
   <modules>
     <module>dev-support</module>
     <module>hadoop-hdds</module>
