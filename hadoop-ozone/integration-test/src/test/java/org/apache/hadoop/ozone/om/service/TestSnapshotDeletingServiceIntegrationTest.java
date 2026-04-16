@@ -79,7 +79,6 @@ import org.apache.hadoop.ozone.om.snapshot.SnapshotUtils;
 import org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableKeyFilter;
 import org.apache.ozone.test.GenericTestUtils;
 import org.apache.ozone.test.tag.Flaky;
-import org.apache.ozone.test.tag.Unhealthy;
 import org.apache.ratis.util.function.UncheckedAutoCloseableSupplier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -102,7 +101,6 @@ import org.slf4j.LoggerFactory;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(OrderAnnotation.class)
-@Unhealthy("HDDS-13303")
 public class TestSnapshotDeletingServiceIntegrationTest {
 
   private static final Logger LOG =
@@ -662,6 +660,8 @@ public class TestSnapshotDeletingServiceIntegrationTest {
   @Order(4)
   public void testSnapshotDeletingServiceWaitsForKeyDeletingService(boolean kdsRunningOnAOS,
       int snasphotDeleteIndex) throws Exception {
+    // After HDDS-13035, user-deleted snapshots stay in the global chain as SNAPSHOT_DELETED until
+    // SnapshotDeletingService purges them; only assert ACTIVE for snapshots not pending deletion.
     SnapshotChainManager snapshotChainManager =
         ((OmMetadataManagerImpl)om.getMetadataManager()).getSnapshotChainManager();
     GenericTestUtils.waitFor(() -> {
@@ -669,6 +669,9 @@ public class TestSnapshotDeletingServiceIntegrationTest {
         Iterator<UUID> itr = snapshotChainManager.iterator(false);
         while (itr.hasNext()) {
           SnapshotInfo snapshotInfo = SnapshotUtils.getSnapshotInfo(om, snapshotChainManager, itr.next());
+          if (snapshotInfo.getSnapshotStatus() == SnapshotInfo.SnapshotStatus.SNAPSHOT_DELETED) {
+            continue;
+          }
           assertEquals(SnapshotInfo.SnapshotStatus.SNAPSHOT_ACTIVE, snapshotInfo.getSnapshotStatus());
         }
         return true;
