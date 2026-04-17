@@ -89,6 +89,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.MockedConstruction;
@@ -637,7 +638,10 @@ public class TestSnapshotDeletingServiceIntegrationTest {
             keyFilter.apply(i.getArgument(0));
             //Notify SDS that Kds has started for the bucket.
             kdsWaitStarted.set(true);
-            GenericTestUtils.waitFor(sdsLockWaitStarted::get, 1000, 10000);
+            // SDS walks the whole global chain; other buckets may have SNAPSHOT_DELETED rows first.
+            // Wait long enough that SDS reaches this test's purge attempt before KDS gives up (else KDS
+            // times out, async task fails, and SDS can block on acquireLock until the test @Timeout).
+            GenericTestUtils.waitFor(sdsLockWaitStarted::get, 1000, 300000);
             // Wait for 1 more second so that the command moves to lock wait.
             Thread.sleep(1000);
             return keyFilter.apply(i.getArgument(0));
@@ -658,6 +662,7 @@ public class TestSnapshotDeletingServiceIntegrationTest {
   @CsvSource({"true, 0", "true, 1", "false, 0", "false, 1", "false, 2"})
   @DisplayName("Tests Snapshot Deleting Service while KeyDeletingService is already running.")
   @Order(4)
+  @Timeout(value = 10, unit = TimeUnit.MINUTES)
   public void testSnapshotDeletingServiceWaitsForKeyDeletingService(boolean kdsRunningOnAOS,
       int snasphotDeleteIndex) throws Exception {
     // After HDDS-13035, user-deleted snapshots stay in the global chain as SNAPSHOT_DELETED until
