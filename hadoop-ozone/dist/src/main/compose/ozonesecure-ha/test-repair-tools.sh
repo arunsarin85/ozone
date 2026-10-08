@@ -93,6 +93,8 @@ echo "Testing ratis transaction repair completed successfully."
 execute_robot_test ${SCM} -v OM_DB:${OZONE_DIR}/compose/ozonesecure-ha/data/${OM}/metadata/om.db \
   repair/om-update-transaction.robot
 
+execute_robot_test ${SCM} repair/scm-cert-recover.robot
+
 execute_robot_test ${OM} kinit.robot
 
 echo "Creating test keys to verify om compaction"
