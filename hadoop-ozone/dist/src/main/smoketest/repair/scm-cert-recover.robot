@@ -15,6 +15,7 @@
 
 *** Settings ***
 Documentation       Test ozone repair scm cert recover against an offline SCM DB checkpoint.
+Library             String
 Resource            ../lib/os.robot
 Test Timeout        5 minutes
 Test Setup          Create SCM DB Checkpoint
@@ -24,11 +25,20 @@ Test Teardown       Remove Directory    ${TEST_DIR}    recursive=True
 ${SCM_DB}           /data/metadata/scm.db
 
 *** Keywords ***
+Resolve Scm Db Path
+    ${path} =    Execute
+    ...    bash -c 'if [ -d /data/metadata/scm.db ]; then echo /data/metadata/scm.db; else find /data/metadata -name scm.db -type d 2>/dev/null | head -1; fi'
+    Should Not Be Empty    ${path}
+    [return]    ${path}
+
 Create SCM DB Checkpoint
+    ${scm_db} =    Resolve Scm Db Path
     ${test_dir} =    Execute    mktemp -d
+    ${test_dir} =    Strip String    ${test_dir}
     Set Test Variable    ${TEST_DIR}    ${test_dir}
     Set Test Variable    ${DB}    ${test_dir}/scm.db
-    Execute    ozone debug ldb --db=${SCM_DB} checkpoint --output=${DB}
+    ${output} =    Execute    ozone debug ldb --db=${scm_db} checkpoint --output=${DB}
+    Should Contain    ${output}    Created checkpoint at
 
 *** Test Cases ***
 Recover SCM Certs Dry Run

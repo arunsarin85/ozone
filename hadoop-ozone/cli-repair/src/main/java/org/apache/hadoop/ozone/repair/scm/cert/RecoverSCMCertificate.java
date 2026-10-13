@@ -155,10 +155,19 @@ public class RecoverSCMCertificate extends RepairTool {
         c -> c.getSubjectDN().getName()
             .contains(OzoneConsts.SCM_SUB_CA_PREFIX) && c.getSubjectDN()
             .getName().contains(hostName)).findFirst();
-    if (!cert.isPresent()) {
-      throw new Exception("Sub CA Cert not found in the DB for this host, Certs in the DB : " + allCerts.keySet());
+    if (cert.isPresent()) {
+      return cert.get();
     }
-    return cert.get();
+    List<X509Certificate> subCas = new ArrayList<>();
+    for (X509Certificate c : allCerts.values()) {
+      if (c.getSubjectDN().getName().contains(OzoneConsts.SCM_SUB_CA_PREFIX)) {
+        subCas.add(c);
+      }
+    }
+    if (subCas.size() == 1) {
+      return subCas.get(0);
+    }
+    throw new Exception("Sub CA Cert not found in the DB for this host, Certs in the DB : " + allCerts.keySet());
   }
 
   private static Map<BigInteger, X509Certificate> getAllCerts(
